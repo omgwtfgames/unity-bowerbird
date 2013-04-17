@@ -138,10 +138,13 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 /**
 * @property {integer} easeInOutElastic
 */
+/**
+* @property {integer} punch
+*/
 public enum LeanTweenType{
 	notUsed, linear, easeOutQuad, easeInQuad, easeInOutQuad, easeInCubic, easeOutCubic, easeInOutCubic, easeInQuart, easeOutQuart, easeInOutQuart, 
 	easeInQuint, easeOutQuint, easeInOutQuint, easeInSine, easeOutSine, easeInOutSine, easeInExpo, easeOutExpo, easeInOutExpo, easeInCirc, easeOutCirc, easeInOutCirc, 
-	easeInBounce, easeOutBounce, easeInOutBounce, easeInBack, easeOutBack, easeInOutBack, easeInElastic, easeOutElastic, easeInOutElastic,
+	easeInBounce, easeOutBounce, easeInOutBounce, easeInBack, easeOutBack, easeInOutBack, easeInElastic, easeOutElastic, easeInOutElastic, punch
 }
 
 class TweenDescr{
@@ -219,6 +222,7 @@ private enum TweenAction{
 	ROTATE_Y,
 	ROTATE_Z,
 	ALPHA,
+	ALPHA_VERTEX,
 	CALLBACK,
 	MOVE,
 	MOVE_LOCAL,
@@ -231,7 +235,7 @@ private enum TweenAction{
 
 /**
 * LeanTween is an efficient tweening engine for Unity3d<br><br>
-* <strong id='optional'>Optional Parameters</strong> are passed in a hastable variable that is accepted at the end of every tweening function.<br>
+* <strong id='optional'>Optional Parameters</strong> are passed in a hash table variable that is accepted at the end of every tweening function.<br>
 * Values you can pass:<br>
 * <strong>delay</strong>: time (or frames if you are using "useFrames") before the tween starts<br>
 * <strong>ease</strong>: Function that desribes the easing you want to be used, you can pass your own or use many of the included tweens. ex: <i>{"ease":LeanTween.easeOutQuad}</i><br> 
@@ -239,6 +243,8 @@ private enum TweenAction{
 * <strong>onUpdate</strong>: Function to call on every update ex: <i>{"onUpdate":functionToCallOnUpdate}</i> or <i>{"onUpdate":functionToCallOnUpdate,"onUpdateParam":hashTableToPassToOnUpdate}</i><br>
 * <strong>useEstimatedTime</strong>: This is useful if the Time.timeScale is set to zero (such as when the game is paused) or some other value and you still want the tween to move at a normal pace ex: <i>{"useEstimatedTime":true}</i><br>
 * <strong>useFrames</strong>: Instead of time passed for both the delay and time value, the amount of frames that have passed is used <i>ex: {"useFrames":true}</i><br>
+* <strong>onCompleteTarget</strong>: In C# if you are passing a String to the "onComplete" parameter, this variable allows you to define target to call the function than the game object you are tweening.<br>
+* <strong>onUpdateTarget</strong>: The same as onCompleteTarget, but for the onUpdate function.<br>
 *
 * @class LeanTween
 */
@@ -257,6 +263,8 @@ private static var dtActual:float;
 private static var tween:TweenDescr;
 private static var i:int;
 private static var j:int;
+private static var punch:AnimationCurve = new AnimationCurve( Keyframe(0, 0 ), Keyframe(0.112586, 0.9976035 ), Keyframe(0.3120486, -0.1720615 ), Keyframe(0.4316337, 0.07030682 ), Keyframe(0.5524869, -0.03141804 ), Keyframe(0.6549395, 0.003909959 ), Keyframe(0.770987, -0.009817753 ), Keyframe(0.8838775, 0.001939224 ), Keyframe(1, 0 ) );
+private static var emptyHash:Hashtable = new Hashtable();
 
 public static function init(){
 	init(maxTweens);
@@ -271,7 +279,7 @@ public static function init(){
 *   LeanTween.init( 800 );
 */
 public static function init(maxSimultaneousTweens:int){
-	if(tweens==null){
+	if(!tweens){
 		maxTweens = maxSimultaneousTweens;
 		tweens = new TweenDescr[maxTweens];
 		tweenEmpty = new GameObject();
@@ -290,20 +298,22 @@ public function Update(){
 }
 
 private static var trans:Transform;
+private static var mesh:Mesh;
+private static var vertices:Vector3[];
+private static var colors:Color32[];
 private static var timeTotal:float;
 private static var tweenAction:int;
 private static var optionalItems:Hashtable;
 private static var tweenFunc:Function;
 private static var animationCurve:AnimationCurve;
 private static var ratioPassed:float;
-private static var from:float;
-private static var to:float;
 private static var val:float;
 private static var fromVect:Vector3;
 private static var toVect:Vector3;
 private static var newVect:Vector3;
 private static var isTweenFinished:boolean;
 private static var target:GameObject;
+private static var customTarget:GameObject;
 
 public static function update() {
 	if(frameRendered != Time.frameCount){ // make sure update is only called once per frame
@@ -369,6 +379,9 @@ public static function update() {
 							tween.from.x = trans.localScale.z; break;
 						case TweenAction.ALPHA:
 							tween.from.x = trans.gameObject.renderer.material.color.a; break;
+						case TweenAction.ALPHA_VERTEX:
+							tween.from.x = trans.GetComponent(MeshFilter).mesh.colors32[0].a;
+							break;
 						case TweenAction.MOVE_LOCAL:
 							tween.from = trans.localPosition; break;
 						case TweenAction.ROTATE:
@@ -413,7 +426,7 @@ public static function update() {
 						ratioPassed = 1.0;
 					
 					if(tweenAction>=TweenAction.MOVE_X && tweenAction<=TweenAction.CALLBACK){
-						if(animationCurve){
+						if(animationCurve!=null){
 							val = tweenOnCurve(tween, ratioPassed);
 						}else {
 							switch( tween.tweenType ){
@@ -479,12 +492,16 @@ public static function update() {
 									val = easeOutElastic(tween.from.x, tween.to.x, ratioPassed); break;
 								case LeanTweenType.easeInOutElastic:
 									val = easeInOutElastic(tween.from.x, tween.to.x, ratioPassed); break;
+								case LeanTweenType.punch:
+									tween.animationCurve = LeanTween.punch;
+									tween.to.x = tween.from.x + tween.to.x;
+									val = tweenOnCurve(tween, ratioPassed); break;
 								default:
 									val = tweenFunc(tween.from.x, tween.to.x, ratioPassed);								
 							}
 						
 						}
-						//Debug.Log("from:"+from+" to:"+to+" val:"+val+" ratioPassed:"+ratioPassed);
+						// Debug.Log("from:"+tween.from.x+" to:"+tween.to.x+" val:"+val+" ratioPassed:"+ratioPassed);
 						if(tweenAction==TweenAction.MOVE_X){
 							trans.position.x = val;
 						}else if(tweenAction==TweenAction.MOVE_Y){
@@ -511,12 +528,22 @@ public static function update() {
 					    	trans.eulerAngles.z = val;
 					    }else if(tweenAction==TweenAction.ALPHA){
 							trans.gameObject.renderer.material.color.a = val;
+						}else if(tweenAction==TweenAction.ALPHA_VERTEX){
+							mesh = trans.GetComponent(MeshFilter).mesh;
+							vertices = mesh.vertices;
+							colors = new Color32[vertices.Length];
+							var c:Color32 = mesh.colors32[0];
+							c.a = val;
+							for (var k = 0; k < vertices.Length; k++) {
+								colors[k] = c;
+							}
+							mesh.colors32 = colors;
 						}
 						
 					}else if(tweenAction>=TweenAction.MOVE){
 						//
 						
-						if(animationCurve){
+						if(animationCurve!=null){
 							newVect = tweenOnCurveVector(tween, ratioPassed);
 						}else{
 							if(tween.tweenType == LeanTweenType.linear){
@@ -585,6 +612,17 @@ public static function update() {
 										newVect = Vector3(easeOutElastic(tween.from.x, tween.to.x, ratioPassed), easeOutElastic(tween.from.y, tween.to.y, ratioPassed), easeOutElastic(tween.from.z, tween.to.z, ratioPassed)); break;
 									case LeanTweenType.easeInOutElastic:
 										newVect = Vector3(easeInOutElastic(tween.from.x, tween.to.x, ratioPassed), easeInOutElastic(tween.from.y, tween.to.y, ratioPassed), easeInOutElastic(tween.from.z, tween.to.z, ratioPassed)); break;
+									case LeanTweenType.punch:
+										tween.animationCurve = LeanTween.punch;
+										tween.to.x = tween.from.x + tween.to.x;
+										tween.to.y = tween.from.y + tween.to.y;
+										tween.to.z = tween.from.z + tween.to.z;
+										if(tweenAction==TweenAction.ROTATE || tweenAction==TweenAction.ROTATE_LOCAL){
+											tween.to.x = closestRot(tween.from.x, tween.to.x);
+											tween.to.y = closestRot(tween.from.y, tween.to.y);
+											tween.to.z = closestRot(tween.from.z, tween.to.z);
+										}
+										newVect = tweenOnCurveVector(tween, ratioPassed); break;
 								}
 							}else{
 								fromVect = tween.from;
@@ -616,14 +654,19 @@ public static function update() {
 
 					if(tween.optional!=null){
 						var onUpdate = optionalItems["onUpdate"];
-						if(onUpdate){
+						if(onUpdate!=null){
 							var updateParam:Hashtable = optionalItems["onUpdateParam"];
 							if(onUpdate.GetType() == String){
 								var onUpdateS:String = onUpdate as String;
-								trans.gameObject.BroadcastMessage( onUpdateS, val );
+								if (optionalItems["onUpdateTarget"]!=null){
+									customTarget = optionalItems["onUpdateTarget"];
+									customTarget.BroadcastMessage( onUpdateS, val );
+								}else{
+									trans.gameObject.BroadcastMessage( onUpdateS, val );
+								}
 							}else{
 								var onUpdateF:Function = onUpdate as Function;
-								if(updateParam) onUpdateF( val, updateParam );
+								if(updateParam!=null) onUpdateF( val, updateParam );
 								else onUpdateF(val);
 							}
 						}
@@ -634,8 +677,8 @@ public static function update() {
 					var callback:Function;
 					var callbackS:String;
 					var callbackParam;
-					if(tween.optional!=null && tween.trans){
-						if(optionalItems["onComplete"]){
+					if(tween.optional!=null && tween.trans!=null){
+						if(optionalItems["onComplete"]!=null){
 							if(optionalItems["onComplete"].GetType()==String){
 								callbackS = optionalItems["onComplete"] as String;
 							}else{
@@ -645,12 +688,18 @@ public static function update() {
 						callbackParam = optionalItems["onCompleteParam"];
 					}
 					removeTween(i);
-					if(callback){
+					if(callback!=null){
 						if(callbackParam) callback( callbackParam );
 						else callback();
-					}else if(callbackS){
-						if(callbackParam) trans.gameObject.BroadcastMessage( callbackS, callbackParam );
-						else trans.gameObject.BroadcastMessage( callbackS );
+					}else if(callbackS!=null){
+						if (optionalItems["onCompleteTarget"]!=null){
+							customTarget = optionalItems["onCompleteTarget"];
+							if(callbackParam!=null) customTarget.BroadcastMessage( callbackS, callbackParam );
+							else customTarget.BroadcastMessage( callbackS );
+						}else{
+							if(callbackParam!=null) trans.gameObject.BroadcastMessage( callbackS, callbackParam );
+							else trans.gameObject.BroadcastMessage( callbackS );
+						}
 					}
 				}else if(tween.delay<=0){
 					tween.passed += dt;
@@ -729,7 +778,7 @@ private static function pushNewTween( gameObject:GameObject, to:Vector3, time:fl
 	tween.animationCurve = null;
 	tween.tweenType = LeanTweenType.linear;
 
-	if(optional){
+	if(optional!=null && optional!=emptyHash){
 		var ease = optional["ease"];
 		var optionsNotUsed = 0;
 		if(ease!=null){
@@ -750,19 +799,19 @@ private static function pushNewTween( gameObject:GameObject, to:Vector3, time:fl
 			}
 			optionsNotUsed++;
 		}
-		if(optional["rect"]){
+		if(optional["rect"]!=null){
 			tween.ltRect = optional["rect"];
 			optionsNotUsed++;
 		}
-		if(optional["delay"]){
+		if(optional["delay"]!=null){
 			tween.delay = optional["delay"];
 			optionsNotUsed++;
 		}
-		if(optional["useEstimatedTime"]){
+		if(optional["useEstimatedTime"]!=null){
 			tween.useEstimatedTime = optional["useEstimatedTime"];
 			optionsNotUsed++;
 		}
-		if(optional["useFrames"]){
+		if(optional["useFrames"]!=null){
 			tween.useFrames = optional["useFrames"];
 			optionsNotUsed++;
 		}
@@ -772,6 +821,20 @@ private static function pushNewTween( gameObject:GameObject, to:Vector3, time:fl
 	//Debug.Log("pushing new tween["+i+"]:"+tweens[i]);
 	
 	return tweens[i].id;
+}
+
+public static function h( arr:Object[] ):Hashtable{
+	if(arr.Length%2==1){
+		var errorMsg:String = "LeanTween - You have attempted to create a Hashtable with an odd number of values.";
+		if(throwErrors) Debug.LogError( errorMsg ); else Debug.Log( errorMsg );
+		return null;
+	}
+	var hash:Hashtable = new Hashtable();
+	for(i = 0; i < arr.Length; i += 2){
+		hash.Add(arr[i] as String, arr[i+1]);
+	}
+
+	return hash;
 }
 
 public static function closestRot( from:float, to:float ):float{
@@ -837,10 +900,6 @@ public static function isTweening( ltRect:LTRect ):boolean{
 	return false;
 }
 
-public function play( gameObject:GameObject, toFrame:int, columns:int, rows:int, optional:Hashtable ):int{
-	
-}
-
 /**
 * Tween any particular value, it does not need to be tied to any particular type or GameObject
 * 
@@ -854,17 +913,24 @@ public function play( gameObject:GameObject, toFrame:int, columns:int, rows:int,
 public static function value(callOnUpdate:Function, from:float, to:float, time:float, optional:Hashtable):int{
 	return value( tweenEmpty, callOnUpdate, from, to, time, optional );
 }
+public static function value(callOnUpdate:Function, from:float, to:float, time:float, optional:Object[]):int{
+	return value( tweenEmpty, callOnUpdate, from, to, time, h(optional) );
+}
 public static function value(gameObject:GameObject, callOnUpdate:String, from:float, to:float, time:float, optional:Hashtable):int{
 	if(optional==null)
-		optional = {} as Hashtable;
+		optional = new Hashtable();
 		
 	optional["onUpdate"] = callOnUpdate;
 	var id:int = pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.CALLBACK, optional );
 	tweens[id].from = new Vector3(from,0,0);
 	return id;
 }
+public static function value(gameObject:GameObject, callOnUpdate:String, from:float, to:float, time:float, optional:Object[]):int{
+	return value(gameObject, callOnUpdate, from, to, time, h(optional)); 
+}
+
 public static function value(gameObject:GameObject, callOnUpdate:Function, from:float, to:float, time:float):int{
-	return value(gameObject, callOnUpdate, from, to, time, null); 
+	return value(gameObject, callOnUpdate, from, to, time, emptyHash); 
 }
 
 /**
@@ -881,12 +947,16 @@ public static function value(gameObject:GameObject, callOnUpdate:Function, from:
 */
 public static function value(gameObject:GameObject, callOnUpdate:Function, from:float, to:float, time:float, optional:Hashtable):int{
 	if(optional==null)
-		optional = {} as Hashtable;
+		optional = new Hashtable();
 		
 	optional["onUpdate"] = callOnUpdate;
 	var id:int = pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.CALLBACK, optional );
 	tweens[id].from = new Vector3(from,0,0);
 	return id;
+}
+
+public static function value(gameObject:GameObject, callOnUpdate:Function, from:float, to:float, time:float, optional:Object[]):int{
+	return value(gameObject, callOnUpdate, from, to, time, h(optional)); 
 }
 
 /**
@@ -904,8 +974,9 @@ public static function value(gameObject:GameObject, callOnUpdate:Function, from:
 * LeanTween.rotate(cube, Vector3(180f,30f,0f), 1.5f);<br>
 */
 public static function rotate(gameObject:GameObject, to:Vector3, time:float):int{
-	return rotate( gameObject, to, time, null );
+	return rotate( gameObject, to, time, emptyHash );
 }
+
 /**
 * Rotate a GameObject, to values that are in passed in degrees
 * 
@@ -928,6 +999,10 @@ public static function rotate(gameObject:GameObject, to:Vector3, time:float, opt
 	return pushNewTween( gameObject, to, time, TweenAction.ROTATE, optional );
 }
 
+public static function rotate(gameObject:GameObject, to:Vector3, time:float, optional:Object[]):int{
+	return rotate( gameObject, to, time, h( optional ) );
+}
+
 /**
 * Rotate a GameObject only on the X axis
 * 
@@ -937,7 +1012,7 @@ public static function rotate(gameObject:GameObject, to:Vector3, time:float, opt
 * @param {float} time:float The time to complete the rotation in
 */
 public static function rotateX(gameObject:GameObject, to:float, time:float):int{
-	return rotateX( gameObject, to, time, null );
+	return rotateX( gameObject, to, time, emptyHash );
 }
 /**
 * Rotate a GameObject only on the X axis
@@ -952,6 +1027,10 @@ public static function rotateX(gameObject:GameObject, to:float, time:float, opti
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.ROTATE_X, optional );
 }
 
+public static function rotateX(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return rotateX( gameObject, to, time, h(optional) );
+}
+
 /**
 * Rotate a GameObject only on the Y axis
 * 
@@ -961,7 +1040,7 @@ public static function rotateX(gameObject:GameObject, to:float, time:float, opti
 * @param {float} time:float The time to complete the rotation in
 */
 public static function rotateY(gameObject:GameObject, to:float, time:float):int{
-	return rotateY( gameObject, to, time, null );
+	return rotateY( gameObject, to, time, emptyHash );
 }
 /**
 * Rotate a GameObject only on the Y axis
@@ -976,6 +1055,10 @@ public static function rotateY(gameObject:GameObject, to:float, time:float, opti
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.ROTATE_Y, optional );
 }
 
+public static function rotateY(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return rotateY( gameObject, to, time, h(optional) );
+}
+
 /**
 * Rotate a GameObject only on the Z axis
 * 
@@ -985,7 +1068,7 @@ public static function rotateY(gameObject:GameObject, to:float, time:float, opti
 * @param {float} time:float The time to complete the rotation in
 */
 public static function rotateZ(gameObject:GameObject, to:float, time:float):int{
-	return rotateZ( gameObject, to, time, null );
+	return rotateZ( gameObject, to, time, emptyHash );
 }
 /**
 * Rotate a GameObject only on the Z axis
@@ -1000,6 +1083,9 @@ public static function rotateZ(gameObject:GameObject, to:float, time:float, opti
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.ROTATE_Z, optional );
 }
 
+public static function rotateZ(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return rotateZ( gameObject, to, time, h(optional) );
+}
 /**
 * Rotate a GameObject in the objects local space (on the transforms localEulerAngles object)
 * 
@@ -1011,6 +1097,10 @@ public static function rotateZ(gameObject:GameObject, to:float, time:float, opti
 */
 public static function rotateLocal(gameObject:GameObject, to:Vector3, time:float, optional:Hashtable):int{
 	return pushNewTween( gameObject, to, time, TweenAction.ROTATE_LOCAL, optional );
+}
+
+public static function rotateLocal(gameObject:GameObject, to:Vector3, time:float, optional:Object[]):int{
+	return rotateLocal( gameObject, to, time, h(optional) );
 }
 
 /**
@@ -1025,6 +1115,9 @@ public static function rotateLocal(gameObject:GameObject, to:Vector3, time:float
 public static function moveX(gameObject:GameObject, to:float, time:float, optional:Hashtable):int{
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.MOVE_X, optional );
 }
+public static function moveX(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return moveX( gameObject, to, time, h(optional) );
+}
 
 /**
 * Move a GameObject along the y-axis
@@ -1038,6 +1131,9 @@ public static function moveX(gameObject:GameObject, to:float, time:float, option
 public static function moveY(gameObject:GameObject, to:float, time:float, optional:Hashtable):int{
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.MOVE_Y, optional );
 }
+public static function moveY(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return moveY( gameObject, to, time, h(optional) );
+}
 
 /**
 * Move a GameObject along the z-axis
@@ -1049,14 +1145,17 @@ public static function moveY(gameObject:GameObject, to:float, time:float, option
 * @param {Hashtable} optional:Hashtable Hashtable where you can pass <a href="#optional">optional items</a>.
 */
 public static function moveZ(gameObject:GameObject, to:float, time:float):int{
-	return moveZ( gameObject, to, time, null );
+	return moveZ( gameObject, to, time, emptyHash );
 }
 public static function moveZ(gameObject:GameObject, to:float, time:float, optional:Hashtable):int{
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.MOVE_Z, optional );
 }
+public static function moveZ(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return moveZ( gameObject, to, time, h(optional) );
+}
 
 public static function move(gameObject:GameObject, to:Vector3, time:float):int{
-	return move( gameObject, to, time, null );
+	return move( gameObject, to, time, emptyHash );
 }
 
 /**
@@ -1080,6 +1179,11 @@ public static function move(gameObject:GameObject, to:Vector3, time:float, optio
 	return pushNewTween( gameObject, to, time, TweenAction.MOVE, optional );
 }
 
+public static function move(gameObject:GameObject, to:Vector3, time:float, optional:Object[]):int{
+	return move( gameObject, to, time, LeanTween.h( optional ) );
+}
+
+
 /**
 * Move a GUI Element to a certain location
 * 
@@ -1093,10 +1197,14 @@ public static function move(gameObject:GameObject, to:Vector3, time:float, optio
 public static function move(ltRect:LTRect, to:Vector2, time:float, optional:Hashtable):int{
 	init();
 	if( optional == null )
-		optional = {} as Hashtable;
+		optional = new Hashtable();
 
 	optional["rect"] = ltRect;
 	return pushNewTween( tweenEmpty, to, time, TweenAction.GUI_MOVE, optional );
+}
+
+public static function move(ltRect:LTRect, to:Vector2, time:float, optional:Object[]):int{
+	return move( ltRect, to, time, h(optional) );
 }
 
 /**
@@ -1109,11 +1217,11 @@ public static function move(ltRect:LTRect, to:Vector2, time:float, optional:Hash
 * @return {int} Returns an integer id that is used to distinguish this tween
 */
 public static function move(ltRect:LTRect, to:Vector2, time:float):int{
-	return move( ltRect, to, time, null );
+	return move( ltRect, to, time, emptyHash );
 }
 
 public static function moveLocal(gameObject:GameObject, to:Vector3, time:float):int{
-	return moveLocal( gameObject, to, time, null );
+	return moveLocal( gameObject, to, time, emptyHash );
 }
 
 /**
@@ -1129,21 +1237,33 @@ public static function moveLocal(gameObject:GameObject, to:Vector3, time:float):
 public static function moveLocal(gameObject:GameObject, to:Vector3, time:float, optional:Hashtable):int{
 	return pushNewTween( gameObject, to, time, TweenAction.MOVE_LOCAL, optional );
 }
+public static function moveLocal(gameObject:GameObject, to:Vector3, time:float, optional:Object[]):int{
+	return moveLocal( gameObject, to, time, h(optional) );
+}
 
 public static function moveLocalX(gameObject:GameObject, to:float, time:float, optional:Hashtable):int{
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.MOVE_LOCAL_X, optional );
+}
+public static function moveLocalX(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return moveLocalX( gameObject, to, time, h(optional) );
 }
 
 public static function moveLocalY(gameObject:GameObject, to:float, time:float, optional:Hashtable):int{
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.MOVE_LOCAL_Y, optional );
 }
+public static function moveLocalY(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return moveLocalY( gameObject, to, time, h(optional) );
+}
 
 public static function moveLocalZ(gameObject:GameObject, to:float, time:float, optional:Hashtable):int{
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.MOVE_LOCAL_Z, optional );
 }
+public static function moveLocalZ(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return moveLocalZ( gameObject, to, time, h(optional) );
+}
 
 public static function scale(gameObject:GameObject, to:Vector3, time:float):int{
-	return scale( gameObject, to, time, null );
+	return scale( gameObject, to, time, emptyHash );
 }
 
 /**
@@ -1160,6 +1280,10 @@ public static function scale(gameObject:GameObject, to:Vector3, time:float, opti
 	return pushNewTween( gameObject, to, time, TweenAction.SCALE, optional );
 }
 
+public static function scale(gameObject:GameObject, to:Vector3, time:float, optional:Object[]):int{
+	return scale( gameObject, to, time, h(optional) );
+}
+
 /**
 * Scale a GUI Element to a certain width and height
 * 
@@ -1173,10 +1297,14 @@ public static function scale(gameObject:GameObject, to:Vector3, time:float, opti
 public static function scale(ltRect:LTRect, to:Vector2, time:float, optional:Hashtable):int{
 	init();
 	if( optional == null )
-		optional = {} as Hashtable;
+		optional = new Hashtable();
 
 	optional["rect"] = ltRect;
 	return pushNewTween( tweenEmpty, to, time, TweenAction.GUI_SCALE, optional );
+}
+
+public static function scale(ltRect:LTRect, to:Vector2, time:float, optional:Object[]):int{
+	return scale( ltRect, to, time, h(optional) );
 }
 
 /**
@@ -1203,28 +1331,37 @@ public static function scale(ltRect:LTRect, to:Vector2, time:float, optional:Has
 * }<br>
 */
 public static function scale(ltRect:LTRect, to:Vector2, time:float):int{
-	return scale( ltRect, to, time, null );
+	return scale( ltRect, to, time, emptyHash );
 }
 
 public static function scaleX(gameObject:GameObject, to:float, time:float):int{
-	return scaleX( gameObject, to, time, null );
+	return scaleX( gameObject, to, time, emptyHash );
 }
 public static function scaleX(gameObject:GameObject, to:float, time:float, optional:Hashtable):int{
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.SCALE_X, optional );
 }
+public static function scaleX(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return scaleX( gameObject, to, time, h(optional) );
+}
 
 public static function scaleY(gameObject:GameObject, to:float, time:float):int{
-	return scaleY( gameObject, to, time, null );
+	return scaleY( gameObject, to, time, emptyHash );
 }
 public static function scaleY(gameObject:GameObject, to:float, time:float, optional:Hashtable):int{
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.SCALE_Y, optional );
 }
+public static function scaleY(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return scaleY( gameObject, to, time, h(optional) );
+}
 
 public static function scaleZ(gameObject:GameObject, to:float, time:float):int{
-	return scaleZ( gameObject, to, time, null );
+	return scaleZ( gameObject, to, time, emptyHash );
 }
 public static function scaleZ(gameObject:GameObject, to:float, time:float, optional:Hashtable):int{
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.SCALE_Z, optional );
+}
+public static function scaleZ(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return scaleZ( gameObject, to, time, h(optional) );
 }
 
 /**
@@ -1236,11 +1373,14 @@ public static function scaleZ(gameObject:GameObject, to:float, time:float, optio
 * @return {int} Returns an integer id that is used to distinguish this tween
 */
 public static function delayedCall( delayTime:float, callback:Function):int{
-	return delayedCall( tweenEmpty, delayTime, callback, null );
+	return delayedCall( tweenEmpty, delayTime, callback, emptyHash );
 }
 
 public static function delayedCall( delayTime:float, callback:Function, optional:Hashtable ):int{
 	return delayedCall( tweenEmpty, delayTime, callback, optional );
+}
+public static function delayedCall( delayTime:float, callback:Function, optional:Object[] ):int{
+	return delayedCall( tweenEmpty, delayTime, callback, h(optional) );
 }
 
 /**
@@ -1253,7 +1393,7 @@ public static function delayedCall( delayTime:float, callback:Function, optional
 * @return {int} Returns an integer id that is used to distinguish this tween
 */
 public static function delayedCall( gameObject:GameObject, delayTime:float, callback:Function ):int{
-	return delayedCall( gameObject, delayTime, callback, null );
+	return delayedCall( gameObject, delayTime, callback, emptyHash );
 }
 
 /**
@@ -1268,7 +1408,7 @@ public static function delayedCall( gameObject:GameObject, delayTime:float, call
 */
 public static function delayedCall( gameObject:GameObject, delayTime:float, callback:Function, optional:Hashtable ):int{
 	if(optional==null)
-		optional = {} as Hashtable;
+		optional = new Hashtable();
 		
 	optional["onComplete"] = callback;
 	return pushNewTween( gameObject, Vector3.zero, delayTime, TweenAction.CALLBACK, optional );
@@ -1284,7 +1424,7 @@ public static function delayedCall( gameObject:GameObject, delayTime:float, call
 * @return {int} Returns an integer id that is used to distinguish this tween
 */
 public static function delayedCall( gameObject:GameObject, delayTime:float, callback:String):int{
-	return delayedCall( gameObject, delayTime, callback, null );
+	return delayedCall( gameObject, delayTime, callback, emptyHash );
 }
 /**
 * Call a function after a certain amount of time has passed
@@ -1298,10 +1438,14 @@ public static function delayedCall( gameObject:GameObject, delayTime:float, call
 */
 public static function delayedCall( gameObject:GameObject, delayTime:float, callback:String, optional:Hashtable):int{
 	if(optional==null)
-		optional = {} as Hashtable;
+		optional = new Hashtable();
 	optional["onComplete"] = callback;
 
 	return pushNewTween( gameObject, Vector3.zero, delayTime, TweenAction.CALLBACK, optional );
+}
+
+public static function delayedCall( gameObject:GameObject, delayTime:float, callback:String, optional:Object[]):int{
+	return delayedCall( gameObject, delayTime, callback, h(optional) );
 }
 
 /**
@@ -1318,8 +1462,36 @@ public static function alpha(gameObject:GameObject, to:float, time:float, option
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.ALPHA, optional );
 }
 
+public static function alpha(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
+	return alpha(gameObject, to, time, h(optional)); 
+}
+
 public static function alpha(gameObject:GameObject, to:float, time:float):int{ 
-	return alpha(gameObject,to,time,null); 
+	return alpha(gameObject, to, time, emptyHash); 
+}
+
+/**
+* This works by tweening the vertex colors directly.<br>
+<br>
+Vertex-based coloring is useful because you avoid making a copy of your
+object's material for each instance that needs a different color.<br>
+<br>
+A shader that supports vertex colors is required for it to work
+(for example the shaders in Mobile/Particles/)
+* 
+* @method LeanTween.alphaVertex
+* @param {GameObject} gameObject:GameObject Gameobject that you wish to rotate
+* @param {float} to:float The time with which to delay before callin the function
+* @param {float} time:float The time with which to delay before calling the function
+* @param {Hashtable} optional:Hashtable Hashtable where you can pass <a href="#optional">optional items</a>.
+* @return {int} Returns an integer id that is used to distinguish this tween
+*/
+public static function alphaVertex(gameObject:GameObject, to:float, time:float, optional:Hashtable):int{
+	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.ALPHA_VERTEX, optional );
+}
+
+public static function alphaVertex(gameObject:GameObject, to:float, time:float):int{
+	return alphaVertex(gameObject,to,time,null);
 }
 
 // Tweening Functions - Thanks to Robert Penner and GFX47
