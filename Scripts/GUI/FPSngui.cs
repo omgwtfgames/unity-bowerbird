@@ -17,13 +17,17 @@ public class FPSngui : MonoBehaviour {
 // 5.5 frames.
  
 public float updateInterval = 1f;
- 
+public bool developmentBuildsOnly = false;
+
 private float accum = 0.0f; // FPS accumulated over the interval
 private int frames = 0; // Frames drawn over the interval
 private float timeleft; // Left time for current interval
 private UILabel nguiLabel;
 
 void Awake() {
+    if (developmentBuildsOnly) {
+        gameObject.SetActive(Debug.isDebugBuild);
+    }
     nguiLabel = GetComponent<UILabel>();
 }
 
