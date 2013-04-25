@@ -9,7 +9,7 @@ public class MusicManager : MonoBehaviour {
 	public float _pitch = 1.0f;
 	
 	// Static singleton property
-    public static MusicController Instance { get; private set; }
+  public static MusicController Instance { get; private set; }
  
 	public float volume {
 		get { return _volume; }

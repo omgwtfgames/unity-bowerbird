@@ -3,21 +3,10 @@ using System.Collections;
 
 public class ActivatedInEditorOnly : MonoBehaviour {
 	
-	public bool showLabels = false;
-	
 	void Awake () {
+     gameObject.SetActive(false);
      #if UNITY_EDITOR
-	 showLabels = true;
+	   gameObject.SetActive(true);
      #endif
-		if (showLabels) {
-           gameObject.SetActive(true);
-		} else {
-		   gameObject.SetActive(false);
-		}
-	}
-	
-	// Update is called once per frame
-	void Update () {
-	
 	}
 }
