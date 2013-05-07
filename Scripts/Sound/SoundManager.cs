@@ -22,7 +22,7 @@ public class SoundManager : MonoBehaviour {
 	private int channelIndex = 0;
 		
 	// Static singleton property
-        public static SoundManager Instance { get; private set; }
+  public static SoundManager Instance { get; private set; }
 	
 	public void Awake () {
 	   /// singleton stuff ///////
