@@ -7,10 +7,17 @@ public class SoundManager : MonoBehaviour {
 	public bool soundOn = true;
 	public bool parentToMainCamera = true;
 	public float soundVolume = 1.0f;
-	//public float musicVolume = 1.0f;
 	public string[] soundNames;
 	public AudioClip[] sounds;
+	
 	Dictionary<string,AudioClip> soundMap = new Dictionary<string,AudioClip>();
+	
+	// we keep tally of how many sfx of a particular name are playing simultaneously
+	// and don't play more than a certain number at a time (for efficiency doesn't 
+	// account for sounds that are manually stopped, assumes they play for the full duration
+	// after being triggered)
+	public int maxSimlutSfxOfOneType = 4;
+	Dictionary<string,int> currentlyPlayingCount = new Dictionary<string,int>();
 	
 	// We essentially create a static object pool, with a set number of
 	// AudioSources ('channels'). We cycle through these each time we play
@@ -20,9 +27,9 @@ public class SoundManager : MonoBehaviour {
 	public int numberOfChannels;
 	private AudioSource[] channels;
 	private int channelIndex = 0;
-		
+
 	// Static singleton property
-  public static SoundManager Instance { get; private set; }
+  	public static SoundManager Instance { get; private set; }
 	
 	public void Awake () {
 	   /// singleton stuff ///////
@@ -46,6 +53,7 @@ public class SoundManager : MonoBehaviour {
 	  channels = new AudioSource[numberOfChannels];
 	  for (int i = 0; i < soundNames.Length; i++) {
 	  	soundMap.Add(soundNames[i], sounds[i]);
+		currentlyPlayingCount.Add(soundNames[i], 0);
 	  }
 	  /*
 	  soundMap = {"Die": sounds[0],
@@ -66,7 +74,7 @@ public class SoundManager : MonoBehaviour {
 	  	c.audio.loop = false;
 	  	channels[ii] = c.audio;
 	  }
-	          
+			
 	  DontDestroyOnLoad(transform.gameObject);
 	}
 	
@@ -88,12 +96,23 @@ public class SoundManager : MonoBehaviour {
 	
 	public void Play(string soundname, float volume, float pitch) {
 	  if (soundOn) {
+		if (currentlyPlayingCount[soundname] > maxSimlutSfxOfOneType) {
+			return;
+		}
+		int channelsPlayingCount = 0;
 	    while (channels[channelIndex].isPlaying) {
 	      incrementChannelIndex();
+		  channelsPlayingCount++;
 	    }
+	    // skip playing this effect if all channels are in use
+		if (channelsPlayingCount >= numberOfChannels) {
+			return;
+		}
 	    channels[channelIndex].pitch = pitch;
 	    channels[channelIndex].volume = volume;
 	  	channels[channelIndex].PlayOneShot(soundMap[soundname], soundVolume);
+		currentlyPlayingCount[soundname] += 1;
+		StartCoroutine("decrementPlayCountInFuture", soundname);
 	  	incrementChannelIndex();
 	  }
 	}
@@ -108,5 +127,10 @@ public class SoundManager : MonoBehaviour {
 	  	} else {
 	  	   channelIndex = 0;
 	  	}
+	}
+	
+	private IEnumerator decrementPlayCountInFuture(string soundname) {
+		yield return new WaitForSeconds(soundMap[soundname].length);
+		if (currentlyPlayingCount[soundname] > 0) currentlyPlayingCount[soundname] -= 1;
 	}
 }
