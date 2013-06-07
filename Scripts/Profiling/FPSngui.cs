@@ -52,7 +52,7 @@ void Update()
     if( timeleft <= 0.0f )
     {
         // display two fractional digits (f2 format)
-        nguiLabel.text = "" + (accum/frames).ToString("f2");
+        nguiLabel.text = (accum/frames).ToString("f2");
         timeleft = updateInterval;
         accum = 0.0f;
         frames = 0;

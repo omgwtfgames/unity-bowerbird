@@ -40,8 +40,9 @@ public class MusicManager : MonoBehaviour {
  
         // Furthermore we make sure that we don't destroy between scenes (this is optional)
         DontDestroyOnLoad(gameObject);
-			
-		audio.clip = tracks[defaultTrack];
+		
+		if (tracks.Length > 0) audio.clip = tracks[defaultTrack];
+	    if (parentToMainCamera) stickToGameObject(Camera.main.gameObject);
 		
 		GetComponent<AudioSource>().rolloffMode = AudioRolloffMode.Linear;
 		GetComponent<AudioSource>().loop = true;
@@ -54,8 +55,8 @@ public class MusicManager : MonoBehaviour {
 		}
 	}
 	
-	void OnLevelWasLoaded (int level) {
-		if (parentToMainCamera) transform.parent = Camera.main.transform;
+	void OnLevelWasLoaded(int level) {
+	  if (parentToMainCamera) stickToGameObject(Camera.main.gameObject);
 	}
 	
 	public void PlayTrack(int i) {
@@ -105,5 +106,10 @@ public class MusicManager : MonoBehaviour {
 	
 	public void SetPitch(float p) {
 		pitch = p;
+	}
+	
+	public void stickToGameObject(GameObject go) {
+		transform.position = go.transform.position;
+		transform.parent = go.transform;
 	}
 }

@@ -24,7 +24,7 @@ public class SoundManager : MonoBehaviour {
 	// a sound - this will reduce the change of one sample somehow clobbering
 	// another, and allows one channel to play at a different pitch without
 	// disrupting other playing samples.
-	public int numberOfChannels;
+	public int numberOfChannels = 16;
 	private AudioSource[] channels;
 	private int channelIndex = 0;
 
@@ -74,12 +74,14 @@ public class SoundManager : MonoBehaviour {
 	  	c.audio.loop = false;
 	  	channels[ii] = c.audio;
 	  }
-			
+	
+	  if (parentToMainCamera) stickToGameObject(Camera.main.gameObject);
+		
 	  DontDestroyOnLoad(transform.gameObject);
 	}
 	
 	void OnLevelWasLoaded (int level) {
-		if (parentToMainCamera) transform.parent = Camera.main.transform;
+	  if (parentToMainCamera) stickToGameObject(Camera.main.gameObject);
 	}
 	
 	public void Start () {
@@ -132,5 +134,10 @@ public class SoundManager : MonoBehaviour {
 	private IEnumerator decrementPlayCountInFuture(string soundname) {
 		yield return new WaitForSeconds(soundMap[soundname].length);
 		if (currentlyPlayingCount[soundname] > 0) currentlyPlayingCount[soundname] -= 1;
+	}
+	
+	public void stickToGameObject(GameObject go) {
+		transform.position = go.transform.position;
+		transform.parent = go.transform;
 	}
 }
