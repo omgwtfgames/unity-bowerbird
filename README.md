@@ -64,9 +64,7 @@ Also contains Madfingers mobile-optimized Shadowgun shaders which they kindly re
 TODO
 ----
 
-There is lots of redundency in Scripts/General. Merge ActivatedInEditorOnly, DestroyOnAwakeExceptInEditor, DestroyOnAwakwe and DestroyAfter, into one all-singing-and-dancing script and also allow actions based on Debug.isDebugBuild. Should probably use OnEnable instead of Awake, so a disabled script can be enabled to start timers and destroy.
-
-Port SoundManager.js to C#. Remove the music related bits since MusicManager can do all this.
+There is lots of redundency in Scripts/General. Merge ActivatedInEditorOnly, DestroyOnAwakeExceptInEditor, DestroyOnAwakwe and DestroyAfter, into one all-singing-and-dancing script and also allow actions based on Debug.isDebugBuild. Consider that the EditorOnly tag makes some of the functionality here redundant. Should probably use OnEnable instead of Awake, so a disabled script can be enabled to start timers and destroy.
 
 Consider allowing MusicManager to play a track using a string name (as well as track index).
 
@@ -74,4 +72,4 @@ Make SiteLock.cs work with a list of domains, not just one.
 
 Test and add someones object pooling class, eg  http://forum.unity3d.com/threads/76851-Simple-Reusable-Object-Pool-Help-limit-your-instantiations! or http://www.booncotter.com/unity-prefactory-a-better-pool-manager/ or http://vonlehecreative.wordpress.com/2010/01/06/unity-resource-gameobjectpool/ or based on http://www.third-helix.com/2011/03/unity-recycling-object-instances/ .
 
-Make it into a Unity package that can be imported.
+Add an example scene with some common prefabs (eg SoundManager, MusicManager, FPS counter) setup ready to go.
