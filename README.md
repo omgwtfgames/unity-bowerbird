@@ -11,6 +11,10 @@ This collection couldn't exist without the hard work of many others freely shari
 
 All code *should* be free for commercial use in games without attribution - but check the license or URL at the top individual script to be sure.
 
+You can download the packaged than can be easily imported into Unity here: https://github.com/omgwtfgames/unity-bowerbird/raw/master/Packages/unity-bowerbird.unitypackage
+
+The package requires NGUI - if you don't have it, you'll also need the NGUI Distribution package here: http://www.tasharen.com/get.php?file=NGUIDistro
+
 Contents
 --------
 
