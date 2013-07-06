@@ -26,7 +26,7 @@ public class ConsolePopup : MonoBehaviour {
 		if (!enabled && e.keyCode == konami[konami_index] && e.type == EventType.KeyUp) {
 			  konami_index++;
 		}
-		if (konami_index > konami.Length - 1) {
+		if (!enabled && konami_index > konami.Length - 1) {
 			enabled = true;
 			showConsole = true;
 		}
