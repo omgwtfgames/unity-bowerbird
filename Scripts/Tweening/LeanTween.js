@@ -1,6 +1,4 @@
-// Copyright (c) 2013 Russell Savage - Dented Pixel
-// 
-// LeanTween version 1.0 - http://dentedpixel.com/developer-diary/
+// Copyright (c) 2012 Russell Savage - Dented Pixel
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -156,7 +154,6 @@ class TweenDescr{
 	var from:Vector3;
 	var to:Vector3;
 	var diff:Vector3;
-	var path:LTBezierPath;
 	var time:float;
 	var useEstimatedTime:boolean;
 	var useFrames:boolean;
@@ -170,7 +167,7 @@ class TweenDescr{
 	var id:int;
 	
 	public function ToString(){
-		return "gameObject:"+trans.gameObject+" toggle:"+toggle+" passed:"+passed+" time:"+time+" delay:"+delay+" from:"+from+" to:"+to+" type:"+type+" useEstimatedTime:"+useEstimatedTime+" id:"+id+" optional:"+optional;
+		return "gameObject:"+trans.gameObject+" toggle:"+toggle+" passed:"+passed+" time:"+time+" delay:"+delay+" from:"+from+" to:"+to+" type:"+type+" useEstimatedTime:"+useEstimatedTime+" id:"+id;
 	}
 }
 
@@ -195,8 +192,6 @@ class TweenDescr{
 * @param {float} y:float Y location
 * @param {float} width:float Width
 * @param {float} height:float Height
-* @param {float} (alpha:float) Alpha (optional parameter, in case you are using the alpha functions and wish to start at an alpha different than 1.0)
-* @param {float} (rotation:float) Rotation (optional parameter, in case you are using the rotate function and wish to start at a rotation different than 0.0)
 */
 
 class LTRect{
@@ -206,185 +201,10 @@ class LTRect{
 	* @property rect
 	* @type {Rect} rect:Rect Rect object that controls the positioning and size
 	*/
-	public var _rect:Rect;
-	public var alpha:float;
-	public var rotation:float;
-	public var pivot:Vector2;
-
-	public var rotateEnabled:boolean;
-	public var rotateFinished:boolean;
-	public var alphaEnabled:boolean;
+	public var rect:Rect;
 
 	public function LTRect(x:float, y:float, width:float, height:float){
-		_rect = Rect(x,y,width,height);
-		this.alpha = 1.0;
-		this.rotation = 0.0;
-		this.rotateEnabled = this.alphaEnabled = false;
-	}
-
-	public function LTRect(x:float, y:float, width:float, height:float, alpha:float){
-		_rect = Rect(x,y,width,height);
-		this.alpha = alpha;
-		this.rotation = 0.0;
-		this.rotateEnabled = this.alphaEnabled = false;
-	}
-
-	public function LTRect(x:float, y:float, width:float, height:float, alpha:float, rotation:float){
-		_rect = Rect(x,y,width,height);
-		this.alpha = alpha;
-		this.rotation = rotation;
-		this.rotateEnabled = this.alphaEnabled = false;
-		if(rotation!=0.0){
-			this.rotateEnabled = true;
-			resetForRotation();
-		}
-	}
-
-	function resetForRotation(){
-		if(pivot==Vector2.zero){
-			pivot = Vector2(_rect.x+_rect.width*0.5, _rect.y+_rect.height*0.5);
-			_rect.x += -pivot.x;
-			_rect.y += -pivot.y;
-		}
-	}
-
-	function get rect():Rect{
-		if(rotateEnabled){
-			if(rotateFinished){
-				rotateFinished = false;
-				rotateEnabled = false;
-				_rect.x += pivot.x;
-				_rect.y += pivot.y;
-				pivot = Vector2.zero;
-				GUI.matrix = Matrix4x4.identity; 
-			}else{
-				var trsMatrix:Matrix4x4 = Matrix4x4.identity; 
-				trsMatrix.SetTRS(pivot, Quaternion.Euler(0,0,rotation), Vector3.one);
-				GUI.matrix = trsMatrix;
-			}
-		}else if(alphaEnabled){
-			GUI.color.a = alpha;
-		}
-		return _rect;
-	}
-
-	function set rect( value ){
-		_rect = value;
-	}
-}
-
-class LTBezier{
-	public var length:float;
-
-	private var a:Vector3;
-	private var aa:Vector3;
-	private var bb:Vector3;
-	private var cc:Vector3;
-	private var len:float;
-	private var arcLengths:float[];
-
-	public function LTBezier(a:Vector3, b:Vector3, c:Vector3, d:Vector3, precision:float){
-		this.a = a;
-	    aa = (-a + 3*(b-c) + d);
-	    bb = 3*(a+c) - 6*b;
-	    cc = 3*(b-a);
-
-	    this.len = 1.0 / precision;
-	    arcLengths = new float[this.len + 1];
-	    arcLengths[0] = 0;
-
-	    var ov:Vector3 = a;
-	    var v:Vector3;
-	    var clen:float = 0.0;
-	    for(var i:int = 1; i <= this.len; i++) {
-	        v = bezierPoint(i * precision);
-	        clen += (ov - v).magnitude;
-	        this.arcLengths[i] = clen;
-	        ov = v;
-	    }
-	    this.length = clen;
-	}
-
-    private function map(u:float):float {
-        var targetLength:float = u * this.arcLengths[this.len];
-        var low:int = 0;
-        var high:int = this.len;
-        var index:int = 0;
-        while (low < high) {
-            index = low + (((high - low) / 2) | 0);
-            if (this.arcLengths[index] < targetLength) {
-                low = index + 1;
-            } else {
-                high = index;
-            }
-        }
-        if(this.arcLengths[index] > targetLength)
-            index--;
-        if(index<0)
-        	index = 0;
-
-        return (index + (targetLength - arcLengths[index]) / (arcLengths[index + 1] - arcLengths[index])) / this.len;
-    }
-
-   	private function bezierPoint(t:float):Vector3{
-	    return ((aa* t + (bb))* t + cc)* t + a;
-	}
-
-    public function point(t:float):Vector3{ 
-    	return bezierPoint( map(t) ); 
-    }
-}
-
-/**
-* Manually animate along a bezier path with this class
-* @class LTBezierPath
-* @constructor
-* @param {float} pts:Vector3[] A set of points that define one or many bezier paths (the paths should be passed in multiples of 4, which correspond to each individual bezier curve)
-*/
-class LTBezierPath{
-	public var pts:Vector3[];
-	public var length:float;
-	public var orientToPath:boolean;
-
-	private var beziers:LTBezier[];
-	private var lengthRatio:float[];
-	
-	public function LTBezierPath( pts_:Vector3[] ){
-		pts = pts_;
-		
-		var k:int = 0;
-		beziers = new LTBezier[ pts.Length / 4 ];
-		lengthRatio = new float[ beziers.Length ];
-		for(var i:int=0; i < pts.Length; i+=4){
-			beziers[k] = new LTBezier(pts[i+0],pts[i+2],pts[i+1],pts[i+3],0.05);
-			length += beziers[k].length;
-			k++;
-		}
-		// Debug.Log("beziers.Length:"+beziers.Length + " beziers:"+beziers);
-		for(i = 0; i < beziers.Length; i++){
-			lengthRatio[i] = beziers[i].length / length;
-		}
-	}
-
-	public function point( ratio:float ):Vector3{
-		var added:float = 0.0;
-		for(var i:int = 0; i < lengthRatio.Length; i++){
-			added += lengthRatio[i];
-			if(added >= ratio)
-				return beziers[i].point( (ratio-(added-lengthRatio[i])) / lengthRatio[i] );
-		}
-		return beziers[lengthRatio.Length-1].point( 1.0 );;
-	}
-
-	public function place( transform:Transform, ratio:float ){
-		place( transform, ratio, Vector3.up );
-	}
-
-	public function place( transform:Transform, ratio:float, worldUp:Vector3 ){
-		transform.position = point( ratio );
-		ratio += 0.001;
-		if(ratio<=1.0)
-			transform.LookAt( point( ratio ), worldUp );
+		rect = Rect(x,y,width,height);
 	}
 }
 
@@ -395,7 +215,6 @@ private enum TweenAction{
 	MOVE_LOCAL_X,
 	MOVE_LOCAL_Y,
 	MOVE_LOCAL_Z,
-	MOVE_CURVED,
 	SCALE_X,
 	SCALE_Y,
 	SCALE_Z,
@@ -411,9 +230,7 @@ private enum TweenAction{
 	ROTATE_LOCAL,
 	SCALE,
 	GUI_MOVE,
-	GUI_SCALE,
-	GUI_ALPHA,
-	GUI_ROTATE
+	GUI_SCALE
 }
 
 /**
@@ -428,7 +245,6 @@ private enum TweenAction{
 * <strong>useFrames</strong>: Instead of time passed for both the delay and time value, the amount of frames that have passed is used <i>ex: {"useFrames":true}</i><br>
 * <strong>onCompleteTarget</strong>: In C# if you are passing a String to the "onComplete" parameter, this variable allows you to define target to call the function than the game object you are tweening.<br>
 * <strong>onUpdateTarget</strong>: The same as onCompleteTarget, but for the onUpdate function.<br>
-* <strong>orientToPath</strong>: When moving objects along a bezier curve, this controls whether the object aligns itself with the curve or not
 *
 * @class LeanTween
 */
@@ -465,25 +281,16 @@ public static function init(){
 public static function init(maxSimultaneousTweens:int){
 	if(!tweens){
 		maxTweens = maxSimultaneousTweens;
-		tweenEmpty = GameObject.Find("~LeanTween");
-		// print("tweenEmpty:"+(tweenEmpty==null));
-		if(tweenEmpty==null)
-			tweenEmpty = new GameObject();
+		tweens = new TweenDescr[maxTweens];
+		tweenEmpty = new GameObject();
 		tweenEmpty.name = "~LeanTween";
 		tweenEmpty.AddComponent(LeanTween);
 		tweenEmpty.isStatic = true;
 		tweenEmpty.DontDestroyOnLoad( tweenEmpty );
-		// tweenEmpty.hideFlags = HideFlags.DontSave;
-		
-		tweens = new TweenDescr[maxTweens];
 		for(i = 0; i < maxTweens; i++){
 			tweens[i] = new TweenDescr();
 		}
 	}
-}
-
-public static function reset(){
-	tweens = null;
 }
 
 public function Update(){
@@ -577,9 +384,6 @@ public static function update() {
 							break;
 						case TweenAction.MOVE_LOCAL:
 							tween.from = trans.localPosition; break;
-						case TweenAction.MOVE_CURVED:
-							tween.path.pts[0] = trans.position;
-							tween.from.x = 0; break;
 						case TweenAction.ROTATE:
 							tween.from = trans.eulerAngles; 
 							tween.to.x = LeanTween.closestRot( tween.from.x, tween.to.x);
@@ -610,15 +414,6 @@ public static function update() {
 							tween.from = Vector3(tween.ltRect.rect.x, tween.ltRect.rect.y, 0.0); break;
 						case TweenAction.GUI_SCALE:
 							tween.from = Vector3(tween.ltRect.rect.width, tween.ltRect.rect.height, 0.0); break;
-						case TweenAction.GUI_ALPHA:
-							tween.from.x = tween.ltRect.alpha; break;
-						case TweenAction.GUI_ROTATE:
-							if(tween.ltRect.rotateEnabled==false){
-								tween.ltRect.rotateEnabled = true;
-								tween.ltRect.resetForRotation();
-							}
-							
-							tween.from.x = tween.ltRect.rotation; break;
 					}
 					tween.diff.x = tween.to.x - tween.from.x;
 					tween.diff.y = tween.to.y - tween.from.y;
@@ -630,7 +425,7 @@ public static function update() {
 					if(ratioPassed>1.0)
 						ratioPassed = 1.0;
 					
-					if(tweenAction>=TweenAction.MOVE_X && tweenAction<=TweenAction.CALLBACK){ // is a tween variety that only acts on one variable
+					if(tweenAction>=TweenAction.MOVE_X && tweenAction<=TweenAction.CALLBACK){
 						if(animationCurve!=null){
 							val = tweenOnCurve(tween, ratioPassed);
 						}else {
@@ -719,13 +514,6 @@ public static function update() {
 							trans.localPosition.y = val;
 						}else if(tweenAction==TweenAction.MOVE_LOCAL_Z){
 							trans.localPosition.z = val;
-						}else if(tweenAction==TweenAction.MOVE_CURVED){
-							if(tween.path.orientToPath){
-								tween.path.place( trans, val );
-							}else{
-								trans.position = tween.path.point( val );
-							}
-							// Debug.Log("val:"+val+" trans.position:"+trans.position + " 0:"+ tween.curves[0] +" 1:"+tween.curves[1] +" 2:"+tween.curves[2] +" 3:"+tween.curves[3]);
 						}else if(tweenAction==TweenAction.SCALE_X){
 							trans.localScale.x = val;
 						}else if(tweenAction==TweenAction.SCALE_Y){
@@ -752,7 +540,7 @@ public static function update() {
 							mesh.colors32 = colors;
 						}
 						
-					}else if(tweenAction>=TweenAction.MOVE){ // is a tween variety that acts on multiple variables
+					}else if(tweenAction>=TweenAction.MOVE){
 						//
 						
 						if(animationCurve!=null){
@@ -765,10 +553,7 @@ public static function update() {
 							}else if(tween.tweenType >= LeanTweenType.linear){
 								switch(tween.tweenType){
 									case LeanTweenType.easeOutQuad:
-										newVect.x = easeOutQuadOpt(tween.from.x, tween.diff.x, ratioPassed);
-										newVect.y = easeOutQuadOpt(tween.from.y, tween.diff.y, ratioPassed);
-										newVect.z = easeOutQuadOpt(tween.from.z, tween.diff.z, ratioPassed); 
-										break;
+										newVect = Vector3(easeOutQuadOpt(tween.from.x, tween.diff.x, ratioPassed), easeOutQuadOpt(tween.from.y, tween.diff.y, ratioPassed), easeOutQuadOpt(tween.from.z, tween.diff.z, ratioPassed)); break;
 									case LeanTweenType.easeInQuad:
 										newVect = Vector3(easeInQuadOpt(tween.from.x, tween.diff.x, ratioPassed), easeInQuadOpt(tween.from.y, tween.diff.y, ratioPassed), easeInQuadOpt(tween.from.z, tween.diff.z, ratioPassed)); break;
 									case LeanTweenType.easeInOutQuad:
@@ -859,15 +644,11 @@ public static function update() {
 					    }else if(tweenAction==TweenAction.SCALE){
 					    	trans.localScale = newVect;
 					    }else if(tweenAction==TweenAction.GUI_MOVE){
-					    	tween.ltRect._rect.x = newVect.x;
-					    	tween.ltRect._rect.y = newVect.y;
+					    	tween.ltRect.rect.x = newVect.x;
+					    	tween.ltRect.rect.y = newVect.y;
 					    }else if(tweenAction==TweenAction.GUI_SCALE){
-					    	tween.ltRect._rect.width = newVect.x;
-					    	tween.ltRect._rect.height = newVect.y;
-					    }else if(tweenAction==TweenAction.GUI_ALPHA){
-					    	tween.ltRect.alpha = newVect.x;
-					    }else if(tweenAction==TweenAction.GUI_ROTATE){
-					    	tween.ltRect.rotation = newVect.x;
+					    	tween.ltRect.rect.width = newVect.x;
+					    	tween.ltRect.rect.height = newVect.y;
 					    }
 					}
 
@@ -893,9 +674,6 @@ public static function update() {
 				}
 				
 				if(isTweenFinished){
-					if(tweenAction==TweenAction.GUI_ROTATE){
-						tween.ltRect.rotateFinished = true;
-					}
 					var callback:Function;
 					var callbackS:String;
 					var callbackParam;
@@ -952,9 +730,8 @@ private static function removeTween( i:int ){
 
 private static var startSearch:int = 0;
 private static var lastMax:int = 0;
-private static var easeDefinition;
 
-private static function pushNewTween( gameObject:GameObject, to:Vector3, time:float, tweenAction:TweenAction, optional:Hashtable ):int{
+private static function pushNewTween( gameObject:GameObject, to:Vector3, time:float, TweenAction:TweenAction, optional:Hashtable ):int{
 	init(maxTweens);
 	if(gameObject==null)
 		return -1;
@@ -975,7 +752,7 @@ private static function pushNewTween( gameObject:GameObject, to:Vector3, time:fl
 		}
 		
 		j++;
-		if(j>maxTweens){
+		if(j>=maxTweens){
 			var errorMsg:String = "LeanTween - You have run out of available spaces for tweening. To avoid this error increase the number of spaces to available for tweening when you initialize the LeanTween class ex: LeanTween.init( "+(maxTweens*2)+" );";
 			if(throwErrors) Debug.LogError(errorMsg); else Debug.Log(errorMsg);
 			return -1;
@@ -992,7 +769,8 @@ private static function pushNewTween( gameObject:GameObject, to:Vector3, time:fl
 	tween.to = to;
 	tween.time = time;
 	tween.passed = 0.0;
-	tween.type = tweenAction;
+	tween.type = TweenAction;
+	tween.optional = optional;
 	tween.delay = 0.0;
 	tween.id = i;
 	tween.useEstimatedTime = false;
@@ -1001,16 +779,16 @@ private static function pushNewTween( gameObject:GameObject, to:Vector3, time:fl
 	tween.tweenType = LeanTweenType.linear;
 
 	if(optional!=null && optional!=emptyHash){
-		easeDefinition = optional["ease"];
-		var optionsNotUsed:int = 0;
-		if(easeDefinition!=null){
+		var ease = optional["ease"];
+		var optionsNotUsed = 0;
+		if(ease!=null){
 			tween.tweenType = LeanTweenType.notUsed;
-			if( easeDefinition.GetType() == LeanTweenType ){
-				tween.tweenType = easeDefinition;
-			}else if(easeDefinition.GetType() == AnimationCurve){
-				tween.animationCurve = easeDefinition as AnimationCurve;
+			if( ease.GetType() == LeanTweenType ){
+				tween.tweenType = ease;
+			}else if(ease.GetType() == AnimationCurve){
+				tween.animationCurve = optional["ease"] as AnimationCurve;
 			}else{
-				tween.tweenFunc = easeDefinition as Function;
+				tween.tweenFunc = optional["ease"] as Function;
 				if(tween.tweenFunc==LeanTween.easeOutQuad){
 					tween.tweenType = LeanTweenType.easeOutQuad;
 				}else if(tween.tweenFunc==LeanTween.easeInQuad){
@@ -1021,35 +799,26 @@ private static function pushNewTween( gameObject:GameObject, to:Vector3, time:fl
 			}
 			optionsNotUsed++;
 		}
-		if(optional.Count > optionsNotUsed){
-			if(optional["rect"]!=null){
-				tween.ltRect = optional["rect"];
-				optionsNotUsed++;
-			}
-			if(optional["path"]!=null){
-				tween.path = optional["path"];
-				optionsNotUsed++;
-			}
-			if(optional["delay"]!=null){
-				tween.delay = optional["delay"];
-				optionsNotUsed++;
-			}
-			if(optional["useEstimatedTime"]!=null){
-				tween.useEstimatedTime = optional["useEstimatedTime"];
-				optionsNotUsed++;
-			}
-			if(optional["useFrames"]!=null){
-				tween.useFrames = optional["useFrames"];
-				optionsNotUsed++;
-			}
+		if(optional["rect"]!=null){
+			tween.ltRect = optional["rect"];
+			optionsNotUsed++;
 		}
-		if(optional.Count <= optionsNotUsed){
+		if(optional["delay"]!=null){
+			tween.delay = optional["delay"];
+			optionsNotUsed++;
+		}
+		if(optional["useEstimatedTime"]!=null){
+			tween.useEstimatedTime = optional["useEstimatedTime"];
+			optionsNotUsed++;
+		}
+		if(optional["useFrames"]!=null){
+			tween.useFrames = optional["useFrames"];
+			optionsNotUsed++;
+		}
+		if(optional.Count <= optionsNotUsed)
 			tween.optional = null;  // nothing else is used with the extra piece, so set to null
-		}else{
-			tween.optional = optional;
-		}
 	}
-	// Debug.Log("pushing new tween["+i+"]:"+tweens[i]);
+	//Debug.Log("pushing new tween["+i+"]:"+tweens[i]);
 	
 	return tweens[i].id;
 }
@@ -1131,21 +900,6 @@ public static function isTweening( ltRect:LTRect ):boolean{
 	return false;
 }
 
-public static function drawBezierPath(a:Vector3, b:Vector3, c:Vector3, d:Vector3){
-    var last:Vector3 = a;
-    var p:Vector3;
-    var aa:Vector3 = (-a + 3*(b-c) + d);
-	var bb:Vector3 = 3*(a+c) - 6*b;
-	var cc:Vector3 = 3*(b-a);
-	var t:float;
-    for(var k:float = 1.0 ; k <= 30.0; k++){
-    	t = k / 30.0;
-    	p = ((aa* t + (bb))* t + cc)* t + a;
-	    Gizmos.DrawLine(last, p);
-	    last = p;
-	}
-}
-
 /**
 * Tween any particular value, it does not need to be tied to any particular type or GameObject
 * 
@@ -1163,7 +917,7 @@ public static function value(callOnUpdate:Function, from:float, to:float, time:f
 	return value( tweenEmpty, callOnUpdate, from, to, time, h(optional) );
 }
 public static function value(gameObject:GameObject, callOnUpdate:String, from:float, to:float, time:float, optional:Hashtable):int{
-	if(optional==null || optional==emptyHash)
+	if(optional==null)
 		optional = new Hashtable();
 		
 	optional["onUpdate"] = callOnUpdate;
@@ -1192,7 +946,7 @@ public static function value(gameObject:GameObject, callOnUpdate:Function, from:
 * @return {int} Returns an integer id that is used to distinguish this tween
 */
 public static function value(gameObject:GameObject, callOnUpdate:Function, from:float, to:float, time:float, optional:Hashtable):int{
-	if(optional==null || optional==emptyHash)
+	if(optional==null)
 		optional = new Hashtable();
 		
 	optional["onUpdate"] = callOnUpdate;
@@ -1247,38 +1001,6 @@ public static function rotate(gameObject:GameObject, to:Vector3, time:float, opt
 
 public static function rotate(gameObject:GameObject, to:Vector3, time:float, optional:Object[]):int{
 	return rotate( gameObject, to, time, h( optional ) );
-}
-
-public static function rotate(ltRect:LTRect, to:float, time:float, optional:Hashtable):int{
-	init();
-	if( optional == null )
-		optional = new Hashtable();
-
-	optional["rect"] = ltRect;
-	return pushNewTween( tweenEmpty, Vector3(to,0,0), time, TweenAction.GUI_ROTATE, optional );
-}
-
-/**
-* Rotate a GUI element (using an LTRect object), to a value that is in degrees
-* 
-* @method LeanTween.rotate
-* @param {LTRect} ltRect:LTRect LTRect that you wish to rotate
-* @param {float} to:float The final rotation with which to rotate to
-* @param {float} time:float The time to complete the tween in
-* @param {Array} optional:Array Object Array where you can pass <a href="#optional">optional items</a>.
-* @return {int} Returns an integer id that is used to distinguish this tween
-* @example <i>Javascript:</i><br>
-* if(GUI.Button(buttonRect.rect, "Rotate"))<br>
-*	LeanTween.rotate( buttonRect4, 150.0, 1.0, ["ease",LeanTween.easeOutElastic]);<br>
-* GUI.matrix = Matrix4x4.identity;<br>
-* <br><br>
-* <i>C#: </i> <br>
-* if(GUI.Button(buttonRect.rect, "Rotate"))<br>
-*	LeanTween.rotate( buttonRect4, 150.0, 1.0, new object[]{"ease",LeanTween.easeOutElastic});<br>
-* GUI.matrix = Matrix4x4.identity;<br>
-*/
-public static function rotate(ltRect:LTRect, to:float, time:float, optional:Object[]):int{
-	return rotate( ltRect, to, time, h(optional) );
 }
 
 /**
@@ -1396,9 +1118,6 @@ public static function moveX(gameObject:GameObject, to:float, time:float, option
 public static function moveX(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
 	return moveX( gameObject, to, time, h(optional) );
 }
-public static function moveX(gameObject:GameObject, to:float, time:float):int{
-	return moveX( gameObject, to, time, emptyHash );
-}
 
 /**
 * Move a GameObject along the y-axis
@@ -1415,9 +1134,6 @@ public static function moveY(gameObject:GameObject, to:float, time:float, option
 public static function moveY(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
 	return moveY( gameObject, to, time, h(optional) );
 }
-public static function moveY(gameObject:GameObject, to:float, time:float):int{
-	return moveY( gameObject, to, time, emptyHash );
-}
 
 /**
 * Move a GameObject along the z-axis
@@ -1428,14 +1144,14 @@ public static function moveY(gameObject:GameObject, to:float, time:float):int{
 * @param {float} time:float The time to complete the move in
 * @param {Hashtable} optional:Hashtable Hashtable where you can pass <a href="#optional">optional items</a>.
 */
+public static function moveZ(gameObject:GameObject, to:float, time:float):int{
+	return moveZ( gameObject, to, time, emptyHash );
+}
 public static function moveZ(gameObject:GameObject, to:float, time:float, optional:Hashtable):int{
 	return pushNewTween( gameObject, Vector3(to,0,0), time, TweenAction.MOVE_Z, optional );
 }
 public static function moveZ(gameObject:GameObject, to:float, time:float, optional:Object[]):int{
 	return moveZ( gameObject, to, time, h(optional) );
-}
-public static function moveZ(gameObject:GameObject, to:float, time:float):int{
-	return moveZ( gameObject, to, time, emptyHash );
 }
 
 public static function move(gameObject:GameObject, to:Vector3, time:float):int{
@@ -1465,52 +1181,6 @@ public static function move(gameObject:GameObject, to:Vector3, time:float, optio
 
 public static function move(gameObject:GameObject, to:Vector3, time:float, optional:Object[]):int{
 	return move( gameObject, to, time, LeanTween.h( optional ) );
-}
-
-public static function move(gameObject:GameObject, to:Vector3[], time:float, optional:Object[]):int{
-	return move( gameObject, to, time, LeanTween.h( optional ) );
-}
-
-/**
-* Move a GameObject along a set of bezier curves
-* 
-* @method LeanTween.move
-* @param {GameObject} gameObject:GameObject Gameobject that you wish to move
-* @param {Vector3[]} path:Vector3[] A set of points that define the curve(s) ex: Point1,Handle1,Handle2,Point2,...
-* @param {float} time:float The time to complete the tween in
-* @param {Hashtable} optional:Hashtable Hashtable where you can pass <a href="#optional">optional items</a>.
-* @return {int} Returns an integer id that is used to distinguish this tween
-* @example
-* <i>Javascript:</i><br>
-* LeanTween.move(gameObject, [Vector3(0,0,0),Vector3(1,0,0),Vector3(1,0,0),Vector3(1,0,1)], 2.0, {"ease":LeanTween.easeOutQuad,"orientToPath":true});<br><br>
-* <i>C#:</i><br>
-* Hashtable optional = new Hashtable();<br>
-* optional.Add("ease":LeanTweenType.easeOutQuad);<br>
-* optional.Add("orientToPath":true);<br>
-* LeanTween.move(gameObject, new Vector3{Vector3(0f,0f,0f),Vector3(1f,0f,0f),Vector3(1f,0f,0f),Vector3(1f,0f,1f)}, 1.5f, optional);<br>
-*/
-public static function move(gameObject:GameObject, to:Vector3[], time:float, optional:Hashtable):int{
-	if(to.Length<4){
-		var errorMsg:String = "LeanTween - When passing values for a vector path, you must pass four or more values!";
-		if(throwErrors) Debug.LogError(errorMsg); else Debug.Log(errorMsg);
-		return -1;
-	}
-	if(to.Length%4!=0){
-		var errorMsg2:String = "LeanTween - When passing values for a vector path, they must be in sets of four: controlPoint1, controlPoint2, endPoint2, controlPoint2, controlPoint2...";
-		if(throwErrors) Debug.LogError(errorMsg2); else Debug.Log(errorMsg2);
-		return -1;
-	}
-
-	init();
-	if( optional == null )
-		optional = new Hashtable();
-
-	var ltPath:LTBezierPath = new LTBezierPath( to );
-	if(optional["orientToPath"])
-		ltPath.orientToPath = true;
-	optional["path"] = ltPath;
-
-	return pushNewTween( gameObject, Vector3(1.0,0.0,0.0), time, TweenAction.MOVE_CURVED, optional );
 }
 
 
@@ -1664,19 +1334,6 @@ public static function scale(ltRect:LTRect, to:Vector2, time:float):int{
 	return scale( ltRect, to, time, emptyHash );
 }
 
-public static function alpha(ltRect:LTRect, to:float, time:float, optional:Hashtable):int{
-	init();
-	if( optional == null )
-		optional = new Hashtable();
-
-	ltRect.alphaEnabled = true;
-	optional["rect"] = ltRect;
-	return pushNewTween( tweenEmpty, Vector3(to,0,0), time, TweenAction.GUI_ALPHA, optional );
-}
-public static function alpha(ltRect:LTRect, to:float, time:float, optional:Object[]):int{
-	return alpha( ltRect, to, time, h(optional) );
-}
-
 public static function scaleX(gameObject:GameObject, to:float, time:float):int{
 	return scaleX( gameObject, to, time, emptyHash );
 }
@@ -1750,7 +1407,7 @@ public static function delayedCall( gameObject:GameObject, delayTime:float, call
 * @return {int} Returns an integer id that is used to distinguish this tween
 */
 public static function delayedCall( gameObject:GameObject, delayTime:float, callback:Function, optional:Hashtable ):int{
-	if(optional==null || optional==emptyHash)
+	if(optional==null)
 		optional = new Hashtable();
 		
 	optional["onComplete"] = callback;
@@ -1780,7 +1437,7 @@ public static function delayedCall( gameObject:GameObject, delayTime:float, call
 * @return {int} Returns an integer id that is used to distinguish this tween
 */
 public static function delayedCall( gameObject:GameObject, delayTime:float, callback:String, optional:Hashtable):int{
-	if(optional==null || optional==emptyHash)
+	if(optional==null)
 		optional = new Hashtable();
 	optional["onComplete"] = callback;
 
@@ -1823,8 +1480,8 @@ A shader that supports vertex colors is required for it to work
 (for example the shaders in Mobile/Particles/)
 * 
 * @method LeanTween.alphaVertex
-* @param {GameObject} gameObject:GameObject Gameobject that you wish to alpha
-* @param {float} to:float The alpha value you wish to tween to
+* @param {GameObject} gameObject:GameObject Gameobject that you wish to rotate
+* @param {float} to:float The time with which to delay before callin the function
 * @param {float} time:float The time with which to delay before calling the function
 * @param {Hashtable} optional:Hashtable Hashtable where you can pass <a href="#optional">optional items</a>.
 * @return {int} Returns an integer id that is used to distinguish this tween

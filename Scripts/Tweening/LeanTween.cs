@@ -142,7 +142,7 @@ using System.Reflection;
 public enum LeanTweenType{
 	notUsed, linear, easeOutQuad, easeInQuad, easeInOutQuad, easeInCubic, easeOutCubic, easeInOutCubic, easeInQuart, easeOutQuart, easeInOutQuart, 
 	easeInQuint, easeOutQuint, easeInOutQuint, easeInSine, easeOutSine, easeInOutSine, easeInExpo, easeOutExpo, easeInOutExpo, easeInCirc, easeOutCirc, easeInOutCirc, 
-	easeInBounce, easeOutBounce, easeInOutBounce, easeInBack, easeOutBack, easeInOutBack, easeInElastic, easeOutElastic, easeInOutElastic, punch
+	easeInBounce, easeOutBounce, easeInOutBounce, easeInBack, easeOutBack, easeInOutBack, easeInElastic, easeOutElastic, easeInOutElastic,
 }
 
 class TweenDescr{
@@ -265,8 +265,6 @@ private static float dtActual;
 private static TweenDescr tween;
 private static int i;
 private static int j;
-private static AnimationCurve punch = new AnimationCurve( new Keyframe(0.0f, 0.0f ), new Keyframe(0.112586f, 0.9976035f ), new Keyframe(0.3120486f, -0.1720615f ), new Keyframe(0.4316337f, 0.07030682f ), new Keyframe(0.5524869f, -0.03141804f ), new Keyframe(0.6549395f, 0.003909959f ), new Keyframe(0.770987f, -0.009817753f ), new Keyframe(0.8838775f, 0.001939224f ), new Keyframe(1.0f, 0.0f ) );
-
 
 public static void init(){
 	init(maxTweens);
@@ -282,7 +280,6 @@ public static void init(){
 */
 public static void init(int maxSimultaneousTweens){
 	if(tweens==null){
-		Debug.LogWarning("If possible use the LeanTween.js file, this file is only provided for people who wish to compile LeanTween as a DLL file. LeanTween.js should be fully functionaly for C# users.");
 		maxTweens = maxSimultaneousTweens;
 		tweens = new TweenDescr[maxTweens];
 		tweenEmpty = new GameObject();
@@ -316,7 +313,6 @@ private static Vector3 toVect;
 private static Vector3 newVect;
 private static bool isTweenFinished;
 private static GameObject target;
-private static GameObject customTarget;
 
 public static void update() {
 	if(frameRendered != Time.frameCount){ // make sure update is only called once per frame
@@ -493,13 +489,13 @@ public static void update() {
 								case LeanTweenType.easeInOutElastic:
 									val = easeInOutElastic(tween.from.x, tween.to.x, ratioPassed); 
                                     break;
-                                case LeanTweenType.punch:
-									tween.animationCurve = LeanTween.punch;
-									tween.to.x = tween.from.x + tween.to.x;
-									val = tweenOnCurve(tween, ratioPassed); break;
                                 default:
                                     {
-                                        val = tween.from.x + tween.diff.x * ratioPassed; break;
+                                        Type t = Type.GetType("LeanTween");
+                                        //MethodInfo method = t.GetMethod(tweenFunc);
+                                        val = (float)t.InvokeMember(tweenFunc, BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static, null, null, new object[] { tween.from.x, tween.to.x, ratioPassed });
+
+                                        break;
                                     }
 							}
 						
@@ -605,24 +601,15 @@ public static void update() {
 										newVect = new Vector3(easeOutElastic(tween.from.x, tween.to.x, ratioPassed), easeOutElastic(tween.from.y, tween.to.y, ratioPassed), easeOutElastic(tween.from.z, tween.to.z, ratioPassed)); break;
 									case LeanTweenType.easeInOutElastic:
 										newVect = new Vector3(easeInOutElastic(tween.from.x, tween.to.x, ratioPassed), easeInOutElastic(tween.from.y, tween.to.y, ratioPassed), easeInOutElastic(tween.from.z, tween.to.z, ratioPassed)); break;
-									case LeanTweenType.punch:
-										tween.animationCurve = LeanTween.punch;
-										tween.to.x = tween.from.x + tween.to.x;
-										tween.to.y = tween.from.y + tween.to.y;
-										tween.to.z = tween.from.z + tween.to.z;
-										if((TweenAction) tweenAction==TweenAction.ROTATE || (TweenAction) tweenAction==TweenAction.ROTATE_LOCAL){
-											tween.to.x = closestRot(tween.from.x, tween.to.x);
-											tween.to.y = closestRot(tween.from.y, tween.to.y);
-											tween.to.z = closestRot(tween.from.z, tween.to.z);
-										}
-										newVect = tweenOnCurveVector(tween, ratioPassed); break;
 								}
 							}else{
 								fromVect = tween.from;
 								toVect = tween.to;
-                                newVect.x = tween.from.x + tween.diff.x * ratioPassed;
-								newVect.y = tween.from.y + tween.diff.y * ratioPassed;
-								newVect.z = tween.from.z + tween.diff.z * ratioPassed;
+                                Type t = Type.GetType("LeanTween");
+                                newVect.x = (float)t.InvokeMember(tweenFunc, BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static, null, null, new object[] { fromVect.x, toVect.x, ratioPassed });
+                                newVect.y = (float)t.InvokeMember(tweenFunc, BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static, null, null, new object[] { fromVect.y, toVect.y, ratioPassed });
+                                newVect.z = (float)t.InvokeMember(tweenFunc, BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static, null, null, new object[] { fromVect.z, toVect.z, ratioPassed });
+                                
 							}
 						}
 						 
@@ -651,12 +638,7 @@ public static void update() {
 							//Hashtable updateParam = (Hashtable)optionalItems["onUpdateParam"];
 							if(onUpdate.GetType() == typeof(string)){
 								string onUpdateS = onUpdate as string;
-								if (optionalItems["onUpdateTarget"]!=null){
-									customTarget = optionalItems["onUpdateTarget"] as GameObject;
-									customTarget.BroadcastMessage( onUpdateS, val );
-								}else{
-									trans.gameObject.BroadcastMessage( onUpdateS, val );
-								}
+								trans.gameObject.BroadcastMessage( onUpdateS, val );
 							}else{
                                 //var onUpdateF:Function = onUpdate as Function;
                                 //if(updateParam) onUpdateF( val, updateParam );
@@ -686,14 +668,8 @@ public static void update() {
 						//else callback();
 					//}else
                     if(callbackS!=string.Empty){
-						if (optionalItems["onCompleteTarget"]!=null){
-							customTarget = optionalItems["onCompleteTarget"] as GameObject;
-							if(callbackParam!=null) customTarget.BroadcastMessage ( callbackS, callbackParam );
-							else customTarget.BroadcastMessage( callbackS );
-						}else{
-							if(callbackParam!=null) trans.gameObject.BroadcastMessage ( callbackS, callbackParam );
-							else trans.gameObject.BroadcastMessage( callbackS );
-						}
+						if(callbackParam!=null) trans.gameObject.BroadcastMessage ( callbackS, callbackParam );
+						else trans.gameObject.BroadcastMessage( callbackS );
 					}
 				}else if(tween.delay<=0){
 					tween.passed += dt;
