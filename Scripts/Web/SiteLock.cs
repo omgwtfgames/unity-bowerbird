@@ -8,7 +8,7 @@ public class SiteLock : MonoBehaviour {
 	public string redirectUrl;
 	
 	void Awake () {
-        #if UNITY_WEBPLAYER
+    #if UNITY_WEBPLAYER
 		string jsarray = "[";
 		foreach (string domain in domains) {
 			jsarray += "'"+domain+"',";
@@ -20,6 +20,6 @@ public class SiteLock : MonoBehaviour {
 			                       "return false;" +
 			                      "} "+
 			                     "if(contains("+jsarray+", document.location.host)) {} else { document.location='"+redirectUrl+"'; }");
-        #endif
+    #endif
     }
 }

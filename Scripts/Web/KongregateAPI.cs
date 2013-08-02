@@ -12,16 +12,18 @@ public class KongregateAPI : MonoBehaviour {
 	
 	void Awake() {
 		// This game object needs to survive multiple levels
-		DontDestroyOnLoad (this);
+		DontDestroyOnLoad(this);
 		 
+		#if UNITY_WEBPLAYER
 		// Begin the API loading process if it is available
 		Application.ExternalEval(
 		  "if(typeof(kongregateUnitySupport) != 'undefined'){" +
 		  " kongregateUnitySupport.initAPI('KongregateAPI', 'OnKongregateAPILoaded');" +
 		  "}"
 		);
+    #endif
 	}
-	
+
 	public static void OnKongregateAPILoaded(string userInfoString){
 	  // We now know we're on Kongregate
 	  isKongregate = true;
@@ -33,8 +35,10 @@ public class KongregateAPI : MonoBehaviour {
 	  username = param[1];
 	  gameAuthToken = param[2];
 	}
-	
+
 	public static void submitStat(string name, int value) {
+		#if UNITY_WEBPLAYER
 		Application.ExternalCall("kongregate.stats.submit", name, value);
+    #endif
 	}
 }
