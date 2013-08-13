@@ -43,7 +43,10 @@ public class Screenshot : MonoBehaviour {
      			
 		// wait for graphics to render
         yield return new WaitForEndOfFrame();
- 
+
+        // we do nothing on web player, since we can't write files
+     	  #if !UNITY_WEBPLAYER
+        
         // create a texture to pass to encoding
         Texture2D texture = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
  
@@ -66,5 +69,6 @@ public class Screenshot : MonoBehaviour {
         DestroyObject( texture );
  
         //Debug.Log( Application.dataPath + "/../testscreen-" + count + ".png" );
+        #endif
     }
 }
