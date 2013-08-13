@@ -7,6 +7,8 @@ public class MusicManager : MonoBehaviour {
 	public bool playOnStart = true;
 	public bool parentToMainCamera = true;
 	public int defaultTrack = 0;
+	public string preferenceName = "music_volume";
+	public bool initialVolumeFromPreference = true;
 	public float _volume = 1.0f;
 	public float _pitch = 1.0f;
 	
@@ -26,7 +28,7 @@ public class MusicManager : MonoBehaviour {
 			  _pitch = value;
 		    }
 	}
-
+	
     void Awake() {
         // First we check if there are any other instances conflicting
         if(Instance != null && Instance != this) {
@@ -41,8 +43,9 @@ public class MusicManager : MonoBehaviour {
         // Furthermore we make sure that we don't destroy between scenes (this is optional)
         DontDestroyOnLoad(gameObject);
 		
-		if (tracks.Length > 0) audio.clip = tracks[defaultTrack];
-	    if (parentToMainCamera) stickToGameObject(Camera.main.gameObject);
+		audio.clip = tracks[defaultTrack];
+		volume = _volume;
+		if (initialVolumeFromPreference) volume = GetVolumePreference();
 		
 		GetComponent<AudioSource>().rolloffMode = AudioRolloffMode.Linear;
 		GetComponent<AudioSource>().loop = true;
@@ -55,8 +58,8 @@ public class MusicManager : MonoBehaviour {
 		}
 	}
 	
-	void OnLevelWasLoaded(int level) {
-	  if (parentToMainCamera) stickToGameObject(Camera.main.gameObject);
+	void OnLevelWasLoaded (int level) {
+		if (parentToMainCamera) transform.parent = Camera.main.transform;
 	}
 	
 	public void PlayTrack(int i) {
@@ -100,16 +103,20 @@ public class MusicManager : MonoBehaviour {
 		LeanTween.value(gameObject, "SetPitch", pitch, targetPitch, fadeTime);
 	}
 	
-	public void SetVolume(float v) {
-		volume = v;
+	public float GetVolumePreference() {
+		return PlayerPrefs.GetFloat(preferenceName, volume);
+	}
+	
+	public void SaveCurrentVolumePreference() {
+		SaveVolumePreference(volume);
+	}
+	
+	public void SaveVolumePreference(float v) {
+		PlayerPrefs.SetFloat(preferenceName, v);
+		PlayerPrefs.Save();
 	}
 	
 	public void SetPitch(float p) {
 		pitch = p;
-	}
-	
-	public void stickToGameObject(GameObject go) {
-		transform.position = go.transform.position;
-		transform.parent = go.transform;
 	}
 }

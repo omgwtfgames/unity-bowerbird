@@ -6,7 +6,9 @@ using System.Collections.Generic;
 public class SoundManager : MonoBehaviour {
 	public bool soundOn = true;
 	public bool parentToMainCamera = true;
-	public float soundVolume = 1.0f;
+	public float volume = 1.0f;
+	public string preferenceName = "sfx_volume";
+	public bool initialVolumeFromPreference = true;
 	public string[] soundNames;
 	public AudioClip[] sounds;
 	
@@ -24,7 +26,7 @@ public class SoundManager : MonoBehaviour {
 	// a sound - this will reduce the change of one sample somehow clobbering
 	// another, and allows one channel to play at a different pitch without
 	// disrupting other playing samples.
-	public int numberOfChannels = 16;
+	public int numberOfChannels;
 	private AudioSource[] channels;
 	private int channelIndex = 0;
 
@@ -74,14 +76,14 @@ public class SoundManager : MonoBehaviour {
 	  	c.audio.loop = false;
 	  	channels[ii] = c.audio;
 	  }
-	
-	  if (parentToMainCamera) stickToGameObject(Camera.main.gameObject);
-		
+			
 	  DontDestroyOnLoad(transform.gameObject);
+		
+	  if (initialVolumeFromPreference) volume = GetVolumePreference();
 	}
 	
 	void OnLevelWasLoaded (int level) {
-	  if (parentToMainCamera) stickToGameObject(Camera.main.gameObject);
+		if (parentToMainCamera) transform.parent = Camera.main.transform;
 	}
 	
 	public void Start () {
@@ -92,8 +94,21 @@ public class SoundManager : MonoBehaviour {
 	
 	}
 	
+	public float GetVolumePreference() {
+		return PlayerPrefs.GetFloat(preferenceName, volume);
+	}
+	
+	public void SaveCurrentVolumePreference() {
+		SaveVolumePreference(volume);
+	}
+	
+	public void SaveVolumePreference(float v) {
+		PlayerPrefs.SetFloat(preferenceName, v);
+		PlayerPrefs.Save();
+	}
+	
 	public void Play(string soundname) {
-		Play(soundname, soundVolume, 1.0f);
+		Play(soundname, volume, 1.0f);
 	}
 	
 	public void Play(string soundname, float volume, float pitch) {
@@ -112,7 +127,7 @@ public class SoundManager : MonoBehaviour {
 		}
 	    channels[channelIndex].pitch = pitch;
 	    channels[channelIndex].volume = volume;
-	  	channels[channelIndex].PlayOneShot(soundMap[soundname], soundVolume);
+	  	channels[channelIndex].PlayOneShot(soundMap[soundname], volume);
 		currentlyPlayingCount[soundname] += 1;
 		StartCoroutine("decrementPlayCountInFuture", soundname);
 	  	incrementChannelIndex();
@@ -134,10 +149,5 @@ public class SoundManager : MonoBehaviour {
 	private IEnumerator decrementPlayCountInFuture(string soundname) {
 		yield return new WaitForSeconds(soundMap[soundname].length);
 		if (currentlyPlayingCount[soundname] > 0) currentlyPlayingCount[soundname] -= 1;
-	}
-	
-	public void stickToGameObject(GameObject go) {
-		transform.position = go.transform.position;
-		transform.parent = go.transform;
 	}
 }
