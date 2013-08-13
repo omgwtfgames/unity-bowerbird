@@ -43,6 +43,8 @@ public class MusicManager : MonoBehaviour {
         // Furthermore we make sure that we don't destroy between scenes (this is optional)
         DontDestroyOnLoad(gameObject);
 		
+		if (parentToMainCamera) transform.parent = Camera.main.transform;
+		
 		audio.clip = tracks[defaultTrack];
 		volume = _volume;
 		if (initialVolumeFromPreference) volume = GetVolumePreference();

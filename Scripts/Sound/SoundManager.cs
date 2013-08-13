@@ -79,6 +79,8 @@ public class SoundManager : MonoBehaviour {
 			
 	  DontDestroyOnLoad(transform.gameObject);
 		
+	  if (parentToMainCamera) transform.parent = Camera.main.transform;
+		
 	  if (initialVolumeFromPreference) volume = GetVolumePreference();
 	}
 	
