@@ -5,11 +5,13 @@ using System.Collections.Generic;
 
 public class SoundManager : MonoBehaviour {
 	public bool soundOn = true;
-	public bool parentToMainCamera = true;
+	public enum CameraFollowMode { None, Follow, Child };
+	public CameraFollowMode cameraFollowMode = CameraFollowMode.Follow;
 	public float volume = 1.0f;
 	public string preferenceName = "sfx_volume";
 	public bool initialVolumeFromPreference = true;
-	public string[] soundNames;
+	public bool useFilenameAsSoundName = false;
+    public List<string> soundNames;
 	public AudioClip[] sounds;
 	
 	Dictionary<string,AudioClip> soundMap = new Dictionary<string,AudioClip>();
@@ -26,7 +28,7 @@ public class SoundManager : MonoBehaviour {
 	// a sound - this will reduce the change of one sample somehow clobbering
 	// another, and allows one channel to play at a different pitch without
 	// disrupting other playing samples.
-	public int numberOfChannels;
+	public int numberOfChannels = 2;
 	private AudioSource[] channels;
 	private int channelIndex = 0;
 
@@ -34,10 +36,10 @@ public class SoundManager : MonoBehaviour {
   	public static SoundManager Instance { get; private set; }
 	
 	public void Awake () {
-	   /// singleton stuff ///////
+	    /// singleton stuff ///////
 	    // First we check if there are any other instances conflicting
-	    if(Instance != null && Instance != this) {
-	        // If that is the case, we destroy other instances
+	    if (Instance != null && Instance != this) {
+	        // If that is the case, we destroy this instance
 	        Destroy(gameObject);
 			return;
 	    }
@@ -53,8 +55,14 @@ public class SoundManager : MonoBehaviour {
 	  	numberOfChannels = 8;
 	  }
 	  channels = new AudioSource[numberOfChannels];
-	  for (int i = 0; i < soundNames.Length; i++) {
-	  	soundMap.Add(soundNames[i], sounds[i]);
+	  for (int i = 0; i < sounds.Length; i++) {
+	  	if (useFilenameAsSoundName) {
+			Debug.Log ("Added sound: " + sounds[i].name);
+			soundNames.Add(sounds[i].name);
+			soundMap.Add(sounds[i].name, sounds[i]);
+		} else {
+			soundMap.Add(soundNames[i], sounds[i]);
+		}
 		currentlyPlayingCount.Add(soundNames[i], 0);
 	  }
 	  /*
@@ -78,14 +86,24 @@ public class SoundManager : MonoBehaviour {
 	  }
 			
 	  DontDestroyOnLoad(transform.gameObject);
-		
-	  if (parentToMainCamera) transform.parent = Camera.main.transform;
+	
+		if (cameraFollowMode == CameraFollowMode.Follow) {
+			transform.position = Camera.main.transform.position;
+		}
+		else if (cameraFollowMode == CameraFollowMode.Child) {
+			transform.parent = Camera.main.transform;
+		} 
 		
 	  if (initialVolumeFromPreference) volume = GetVolumePreference();
 	}
 	
 	void OnLevelWasLoaded (int level) {
-		if (parentToMainCamera) transform.parent = Camera.main.transform;
+		if (cameraFollowMode == CameraFollowMode.Follow) {
+			transform.position = Camera.main.transform.position;
+		}
+		else if (cameraFollowMode == CameraFollowMode.Child) {
+			transform.parent = Camera.main.transform;
+		} 
 	}
 	
 	public void Start () {
@@ -93,7 +111,9 @@ public class SoundManager : MonoBehaviour {
 	}
 	
 	public void Update () {
-	
+		if (cameraFollowMode == CameraFollowMode.Follow) {
+			transform.position = Camera.main.transform.position;
+		}
 	}
 	
 	public float GetVolumePreference() {
