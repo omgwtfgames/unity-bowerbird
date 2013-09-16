@@ -57,7 +57,6 @@ public class SoundManager : MonoBehaviour {
 	  channels = new AudioSource[numberOfChannels];
 	  for (int i = 0; i < sounds.Length; i++) {
 	  	if (useFilenameAsSoundName) {
-			Debug.Log ("Added sound: " + sounds[i].name);
 			soundNames.Add(sounds[i].name);
 			soundMap.Add(sounds[i].name, sounds[i]);
 		} else {
