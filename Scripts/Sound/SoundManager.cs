@@ -168,7 +168,9 @@ public class SoundManager : MonoBehaviour {
 	}
 	
 	private IEnumerator decrementPlayCountInFuture(string soundname) {
-		yield return new WaitForSeconds(soundMap[soundname].length);
+		if (Time.timeScale > 0) {
+			yield return new WaitForSeconds(soundMap[soundname].length);
+		}
 		if (currentlyPlayingCount[soundname] > 0) currentlyPlayingCount[soundname] -= 1;
 	}
 }
