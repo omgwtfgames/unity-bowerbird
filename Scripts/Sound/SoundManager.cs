@@ -133,6 +133,10 @@ public class SoundManager : MonoBehaviour {
 	}
 	
 	public void Play(string soundname, float volume, float pitch) {
+	  if (!soundMap.ContainsKey(soundname)) {
+		  Debug.LogWarning("SoundManager: Tried to play undefined sound: " + soundname);
+		  return;
+	  }
 	  if (soundOn) {
 		if (currentlyPlayingCount[soundname] > maxSimlutSfxOfOneType) {
 			return;
