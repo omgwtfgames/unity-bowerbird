@@ -74,14 +74,15 @@ public class SoundManager : MonoBehaviour {
 	  // generate attached gameobjects "Channel1", "Channel2" with AudioSources
 	  // accessible in the channel array
 	  for (int ii = 0; ii < numberOfChannels; ii++) {
-	  	GameObject c = new GameObject();
-	  	c.name = "Channel"+ii;
-	  	c.transform.parent = transform;
-	  	AudioSource a = c.AddComponent<AudioSource>();
-	  	a.rolloffMode = AudioRolloffMode.Linear;
-		a.dopplerLevel = 0f;
-	  	c.audio.loop = false;
-	  	channels[ii] = c.audio;
+	    	GameObject c = new GameObject();
+	    	c.name = "Channel"+ii;
+	    	c.transform.parent = transform;
+	    	AudioSource a = c.AddComponent<AudioSource>();
+	    	a.rolloffMode = AudioRolloffMode.Linear;
+		  a.panLevel = 0f;
+		  a.dopplerLevel = 0f;
+	    	c.audio.loop = false;
+	    	channels[ii] = c.audio;
 	  }
 			
 	  DontDestroyOnLoad(transform.gameObject);

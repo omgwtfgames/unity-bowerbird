@@ -43,15 +43,17 @@ public class MusicManager : MonoBehaviour {
         // Furthermore we make sure that we don't destroy between scenes (this is optional)
         DontDestroyOnLoad(gameObject);
 		
-		if (parentToMainCamera) transform.parent = Camera.main.transform;
+		  if (parentToMainCamera) transform.parent = Camera.main.transform;
 		
-		audio.clip = tracks[defaultTrack];
-		volume = _volume;
-		if (initialVolumeFromPreference) volume = GetVolumePreference();
+		  audio.clip = tracks[defaultTrack];
+		  volume = _volume;
+		  if (initialVolumeFromPreference) volume = GetVolumePreference();
 		
-		GetComponent<AudioSource>().rolloffMode = AudioRolloffMode.Linear;
-		GetComponent<AudioSource>().loop = true;
-		GetComponent<AudioSource>().dopplerLevel = 0f;
+		  AudioSource audioSrc = GetComponent<AudioSource>();
+		  audioSrc.rolloffMode = AudioRolloffMode.Linear;
+		  audioSrc.loop = true;
+		  audioSrc.dopplerLevel = 0f;
+	    audioSrc.panLevel = 0f;
     }
 	
 	void Start() {
