@@ -3,15 +3,15 @@ unity-bowerbird
 
 *A Bowerbird's Nest of Unity3D scripts*
 
-A set of resusable scripts and simple assets for Unity3D.
+A set of resusable scripts for Unity3D. Useful for getting started quickly in gamejams such as Ludum Dare, where publically available 'basecode' is permissible. 
 
-These are things I find myself using over and over again, so I thought I'd collect them in one place. I hope to continually evolve this into what I would regard as "the missing Standard Assets".
+These are things I find myself using over and over again, so I thought I'd collect them in one place.
 
-This collection couldn't exist without the hard work of many others freely sharing their code. What you find here is a combination of stuff I've written and code freely shared by others on the Unify Community wiki (http://wiki.unity3d.com/index.php/Main_Page), the Unity forums (http://forum.unity3d.com/forum.php) and around the web. I've linked back to the original source at the top of each script, where appropriate. 
+This collection couldn't exist without the hard work of many others freely sharing their code. What you find here is a combination of stuff I've written and code freely shared by others on the Unify Community wiki (http://wiki.unity3d.com/index.php/Main_Page), the Unity forums (http://forum.unity3d.com/forum.php) and around the web. I've linked back to the original source at the top of each script, where appropriate.
 
-All code *should* be free for commercial use in games without attribution - but check the license or URL at the top individual script to be sure.
+All code *should* be free for commercial use in games without attribution - but check the license or URL at the top of each individual script to be sure.
 
-You can download the packaged version that can be easily imported into Unity here: https://github.com/omgwtfgames/unity-bowerbird/raw/master/Packages/unity-bowerbird.unitypackage
+You can download the packaged version for easy import into Unity here: https://github.com/omgwtfgames/unity-bowerbird/raw/master/Packages/unity-bowerbird.unitypackage
 
 Some parts of this package may require NGUI - if you don't have it, you'll also need the [NGUI Distribution package](http://www.tasharen.com/get.php?file=NGUIDistro) (version 2.7.0 is now [free to use with some restrictions](http://forum.unity3d.com/threads/ngui-free-edition.124032/))
 
