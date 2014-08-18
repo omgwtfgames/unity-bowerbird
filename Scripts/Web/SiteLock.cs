@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class SiteLock : MonoBehaviour {
+    // NOTE: GameJolt uses gamejolt.com and gamejolt.net !
 	public List<string> domains;
 	public string redirectUrl;
 	
