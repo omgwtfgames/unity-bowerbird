@@ -1,36 +1,47 @@
 using UnityEngine;
 using System.Collections;
 
-public class DestroyAfter : MonoBehaviour {
-	public float time;
-	public bool justSetInactive = false;
-  public bool detachChildren = false;
-	//private float counter = 0f;
-  //private bool done = false;
+public class DestroyAfter : MonoBehaviour
+{
 
-  void Awake() {
-    Invoke("DestroyOrWhatever", time);
-  }
+    public enum DisableMethod
+    {
+        Inactivation,
+        Destruction 
+    };
 
-  /*
-	void Update () {
-		if (!done && counter >= time) {
-      DestroyOrWhatever();
-      done = true;
-		}
-		counter += Time.deltaTime;
-	}
-  */
+    public float time;
+    public DisableMethod disableBy;
+    public bool detachChildren = false;
+
+    // NOTE: similar functionality is built into Unity - 
+    //       just tag any GameObject as "EditorOnly" and it
+    //       won't be included in published builds but will
+    //       be available in the Editor.
+    public bool keepInEditor = false;
+
+    void Awake()
+    {
+        if (!Application.isEditor || 
+            (Application.isEditor && !keepInEditor)) {
+                Invoke("DestroyOrDisable", time);
+        }
+    }
   
-  void DestroyOrWhatever() {
-    if (detachChildren) {
-        transform.DetachChildren();
-    }
+    void DestroyOrDisable()
+    {
+        if (detachChildren) transform.DetachChildren();
 
-    if (justSetInactive) {
-      gameObject.SetActive(false);
-    } else {
-      Destroy(gameObject);
+        switch (disableBy)
+        {
+            case DisableMethod.Inactivation:
+                gameObject.SetActive(false);
+                break;
+            case DisableMethod.Destruction:
+                Destroy(gameObject);
+                break;
+            default:
+                break;
+        }
     }
-  }
 }
