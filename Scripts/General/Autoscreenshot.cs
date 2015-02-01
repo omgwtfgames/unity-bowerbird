@@ -56,7 +56,7 @@ public class Autoscreenshot : MonoBehaviour {
  
     public void Snap() {
         int number = startNumber;
-        string date = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss:FFF ");
+        string date = System.DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss-FFF ");
         string filepath = System.IO.Path.Combine(basepath, date + suffix + number.ToString() + ".png");
  
         startNumber = number + 1;
